@@ -1,0 +1,80 @@
+#include "inclusions.h"
+using namespace sf;
+using namespace std;
+
+int main() {
+    VideoMode vm({ 1920u, 1080u });
+    RenderWindow window(vm, "Timber!!!", Style::Default);
+    vector<Sprite> sprites; 
+    vector<Sprite> clouds;
+	vector<Text> messages;
+    Clock clock;
+	bool paused = false;    
+    srand(time(0));
+	Font font;
+    if (!font.openFromFile("fonts/KOMIKAP_.ttf")) {
+        cerr << "Error: Could not load font!" << endl;
+        // Handle error appropriately
+    }
+    Text messageText(font,"hello",100U);
+    FloatRect textRect = messageText.getLocalBounds();
+    messageText.setOrigin({ textRect.getCenter() });
+    messageText.setPosition({ 1920 / 2.0f, 1080 / 2.0f });
+    messages.push_back(messageText);
+
+	// sets the back ground to a png of your choice
+	Texture textureBackground;// create a texture
+	textureBackground = checktex(textureBackground, "graphics/background.png");// load a graphic into the texture
+	Sprite backGround(textureBackground);//load the texture into a sprite
+	backGround.setPosition({ 0,0 });//set sprite position
+
+
+    vector<Vector2f> cloudSpeeds;
+    Texture texturecloud;
+    texturecloud = checktex(texturecloud, "graphics/cloud.png");
+    for (int i = 0; i < 5; i++) {
+        Sprite cloud(texturecloud);
+        cloud.setPosition({ float((rand() % 1919) - 2119), float((rand() % 350)) });
+		cloudSpeeds.push_back({ float((rand() % 100) / 100000.0 + 0.07),0 });
+        clouds.push_back(cloud);
+    }
+  
+	//adds a tree graphic to the screen
+    Texture textureTree;
+	textureTree = checktex(textureTree, "graphics/tree.png");
+	Sprite tree(textureTree);
+	tree.setPosition({ 810,-40 });
+	sprites.push_back(tree);
+
+    while (window.isOpen()){
+        if (Keyboard::isKeyPressed(Keyboard::Key::Escape))
+
+        {
+            window.close();
+        }
+        // Start the game
+        if (Keyboard::isKeyPressed(Keyboard::Key::Enter))
+        {
+            paused = !paused;
+        }
+
+        if (!paused) {
+            Time dt = clock.restart();
+            for (int i = 0; i < 5; i++) {
+                if (clouds[i].getPosition().x > 1920) {
+                    clouds[i].setPosition({ -300, float((rand() % 350)) });
+                    cloudSpeeds[i] = { float((rand() % 100) / 100000.0 + 0.07),0 };
+                }
+                clouds[i].setPosition(clouds[i].getPosition() + cloudSpeeds[i]);
+            }
+        }
+        // Load a graphic into the texture 
+
+        /*
+        **************************************** Handle the players input
+        ****************************************
+        */
+        renderAll(window,backGround, sprites,clouds);
+    }
+    return 0;
+}
