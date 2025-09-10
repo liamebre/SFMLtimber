@@ -2,25 +2,49 @@
 using namespace sf;
 using namespace std;
 
+void updateBranches(int seed);
+const int NUM_BRANCHES = 6;
+vector<Sprite> branches;
+// Where is the player/branch?
+// Left or Right
+enum class side { LEFT, RIGHT, NONE };
+side branchPositions[NUM_BRANCHES];
+
 int main() {
     VideoMode vm({ 1920u, 1080u });
     RenderWindow window(vm, "Timber!!!", Style::Default);
     vector<Sprite> sprites; 
     vector<Sprite> clouds;
-	vector<Text> messages;
     Clock clock;
-	bool paused = false;    
+	int score = 0;
+    bool paused = false;
     srand(time(0));
+
+    RectangleShape timeBar;
+    float timeBarStartWidth = 400;
+    float timeBarHeight = 80;
+    timeBar.setSize(Vector2f(timeBarStartWidth, timeBarHeight));
+    timeBar.setFillColor(Color::Red);
+    timeBar.setPosition({ (1920 / 2) - timeBarStartWidth / 2, 980 });
+    Time gameTimeTotal;
+    float timeRemaining = 6.0f;
+    float timeBarWidthPerSecond = timeBarStartWidth / timeRemaining;
+
+
 	Font font;
     if (!font.openFromFile("fonts/KOMIKAP_.ttf")) {
         cerr << "Error: Could not load font!" << endl;
         // Handle error appropriately
     }
-    Text messageText(font,"hello",100U);
+
+    Text messageText(font, "paused", 100U);
     FloatRect textRect = messageText.getLocalBounds();
     messageText.setOrigin({ textRect.getCenter() });
     messageText.setPosition({ 1920 / 2.0f, 1080 / 2.0f });
-    messages.push_back(messageText);
+
+    Text scoreText(font, "score : 0", 50U);
+	FloatRect scoreRect = scoreText.getLocalBounds();
+    scoreText.setPosition({0.0f, 0.0f });
 
 	// sets the back ground to a png of your choice
 	Texture textureBackground;// create a texture
@@ -34,7 +58,7 @@ int main() {
     texturecloud = checktex(texturecloud, "graphics/cloud.png");
     for (int i = 0; i < 5; i++) {
         Sprite cloud(texturecloud);
-        cloud.setPosition({ float((rand() % 1919) - 2119), float((rand() % 350)) });
+        cloud.setPosition({ float((rand() % 1919)), float((rand() % 350)) });
 		cloudSpeeds.push_back({ float((rand() % 100) / 100000.0 + 0.07),0 });
         clouds.push_back(cloud);
     }
@@ -46,9 +70,19 @@ int main() {
 	tree.setPosition({ 810,-40 });
 	sprites.push_back(tree);
 
+    // Prepare 5 branches
+    Texture textureBranch;
+    textureBranch.loadFromFile("graphics/branch.png");
+    // Set the texture for each branch sprite
+    for (int i = 0; i < NUM_BRANCHES; i++) {
+        Sprite branch(textureBranch);
+        branch.setPosition({ -2000, -2000 });
+        branch.setOrigin({ 220, 20 });
+        branches.push_back(branch);
+    }
+
     while (window.isOpen()){
         if (Keyboard::isKeyPressed(Keyboard::Key::Escape))
-
         {
             window.close();
         }
@@ -56,16 +90,68 @@ int main() {
         if (Keyboard::isKeyPressed(Keyboard::Key::Enter))
         {
             paused = !paused;
+            Time dt = clock.restart();
         }
 
         if (!paused) {
             Time dt = clock.restart();
+
+            // Subtract from the amount of time remaining
+            timeRemaining -= dt.asSeconds();
+            // size up the time bar
+            timeBar.setSize(Vector2f(timeBarWidthPerSecond *
+                timeRemaining, timeBarHeight));
+
             for (int i = 0; i < 5; i++) {
                 if (clouds[i].getPosition().x > 1920) {
-                    clouds[i].setPosition({ -300, float((rand() % 350)) });
+                    clouds[i].setPosition({ -300, float((rand() % 400) - 50) });
                     cloudSpeeds[i] = { float((rand() % 100) / 100000.0 + 0.07),0 };
                 }
                 clouds[i].setPosition(clouds[i].getPosition() + cloudSpeeds[i]);
+            }
+            if (timeRemaining > 0.0f){
+				messageText.setString("paused");
+                FloatRect textRect = messageText.getLocalBounds();
+                messageText.setOrigin({ textRect.getCenter() });
+                messageText.setPosition({ 1920 / 2.0f, 1080 / 2.0f });
+            }
+
+            if (timeRemaining <= 0.0f) {
+                //restet game values 
+                score = 0;
+                timeRemaining = 6.0f;
+                // Pause the game
+                paused = true;
+                messageText.setString("Out of time!!");
+                // Reposition the text based on its new size
+                FloatRect textRect = messageText.getLocalBounds();
+                messageText.setOrigin({ textRect.getCenter() });
+                messageText.setPosition({ 1920 / 2.0f, 1080 / 2.0f });
+			}
+
+            // update the branch sprites
+            for (int i = 0; i < NUM_BRANCHES; i++)
+            {
+                float height = i * 150;
+                if (branchPositions[i] == side::LEFT)
+                {
+                    // Move the sprite to the left side
+                    branches[i].setPosition({ 610, height });
+                    // Flip the sprite round the other way
+                    branches[i].setRotation(degrees(180));
+                }
+                else if (branchPositions[i] == side::RIGHT)
+                {
+                    // Move the sprite to the right side
+                    branches[i].setPosition({ 1330, height });
+                    // Set the sprite rotation to normal
+                    branches[i].setRotation(degrees(0));
+                }
+                else
+                {
+                    // Hide the branch
+                    branches[i].setPosition({ 3000, height });
+                }
             }
         }
         // Load a graphic into the texture 
@@ -74,7 +160,46 @@ int main() {
         **************************************** Handle the players input
         ****************************************
         */
+
         renderAll(window,backGround, sprites,clouds);
+        for (int i = 0; i < NUM_BRANCHES; i++)
+        {
+            window.draw(branches[i]);
+        }
+		window.draw(scoreText);
+		window.draw(timeBar);
+        if (paused == true) {
+            window.draw(messageText);
+        }
+		window.display();
     }
     return 0;
+}
+
+void updateBranches(int seed)
+{
+    // Move all the branches down one place
+    for (int j = NUM_BRANCHES - 1; j > 0; j--)
+    {
+        branchPositions[j] = branchPositions[j - 1];
+    }
+
+    // Spawn a new branch at position 0
+// LEFT, RIGHT or NONE
+    srand((int)time(0) + seed);
+    int r = (rand() % 5);
+
+    switch (r) {
+    case 0:
+        branchPositions[0] = side::LEFT;
+        break;
+
+    case 1:
+        branchPositions[0] = side::RIGHT;
+        break;
+
+    default:
+        branchPositions[0] = side::NONE;
+        break;
+    }
 }
