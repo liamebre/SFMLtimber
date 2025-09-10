@@ -22,7 +22,6 @@ void renderAll(RenderWindow& window_,Sprite bg_, vector<Sprite> sprites_,vector<
     for (auto& sprite : sprites_) {
         window_.draw(sprite);
     }
-    window_.display();
 }
 
 Sprite makeCloud(Texture& texturecloud_) {
