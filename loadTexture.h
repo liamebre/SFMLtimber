@@ -5,13 +5,21 @@ using namespace std;
 
 Texture checktex(sf::Texture tex_,filesystem::path file_) {
     if (!tex_.loadFromFile(file_)) {
-        cerr << "Error: Failed to load background texture!" << endl;
+        cerr << "Error: Failed to load texture!" << endl;
     }
     else { 
         return tex_; 
     }
 }
 
+SoundBuffer checksound(sf::SoundBuffer sound_, filesystem::path file_) {
+    if (!sound_.loadFromFile(file_)) {
+        cerr << "Error: Failed to load sound!" << endl;
+    }
+    else {
+        return sound_;
+    }
+}
 
 void renderAll(RenderWindow& window_,Sprite bg_, vector<Sprite> sprites_,vector<Sprite> clouds) {
     window_.clear();
